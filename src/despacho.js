@@ -63,6 +63,8 @@ export class Despacho {
    * error en `motor.descargas` y la orden lo devuelve tal cual.
    */
   async prepararDescargas(ordenes, descargar = descargarMedio) {
+    // Entrega controlada: media.upload no se va a ejecutar, no se baja nada (L3).
+    if (this.sitio.config.escrituras === false) return;
     for (const o of (Array.isArray(ordenes) ? ordenes : []).slice(0, MAX_ORDENES)) {
       const url = o?.verbo === "media.upload" && o?.argumentos && typeof o.argumentos.url === "string" ? o.argumentos.url : null;
       if (!url || this.motor.descargas.has(url) || this.ordenes.buscar(o.id, this.ahora())) continue;
@@ -109,6 +111,10 @@ export class Despacho {
         : { id, verbo: previo.verbo, ok: false, error: previo.error, repetida: true };
       // De una lectura solo se guardó el hash (repos públicos): se vuelve a ejecutar, que no cambia nada.
       if (previo.ok && previo.resultado === undefined && previo.hash) {
+        // G1 (Fable N4): solo la MISMA lectura. Un id ya usado no puede colar otro verbo (y menos una escritura).
+        if (verbo !== previo.verbo || !this.motor.esLectura(verbo)) {
+          return { salida: fallo(id, verbo, "tranquiseo_orden_invalida", "Ese identificador de orden ya se usó para otra cosa."), escritura: false, ejecutada: false };
+        }
         const r = this.motor.ejecutar(verbo, args, { orden: id });
         return { salida: r.ok ? { id, verbo, ok: true, resultado: r.resultado, repetida: true } : { id, verbo, ok: false, error: r.error, repetida: true }, escritura: false, ejecutada: false };
       }

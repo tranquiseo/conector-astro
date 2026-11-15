@@ -8,7 +8,7 @@ import { catalogo as catalogoLectura } from "./lectura.js";
 import { catalogo as catalogoEscritura } from "./escritura.js";
 import { catalogo as catalogoMedios } from "./medios.js";
 import { catalogo as catalogoRedirecciones } from "./redirecciones.js";
-import { NO_DISPONIBLES, REMEDIOS_REDIRECCIONES, redirecciones } from "../capacidades.js";
+import { ENTREGA_CONTROLADA, NO_DISPONIBLES, REMEDIOS_REDIRECCIONES, redirecciones } from "../capacidades.js";
 import { sanearHtml } from "../contenido/html.js";
 import { validarSchema } from "../contenido/schema.js";
 import { Registro } from "../estado/registros.js";
@@ -89,6 +89,11 @@ export class Motor {
       throw new ErrorVerbo("tranquiseo_verbo_desconocido", `El verbo ${String(verbo).slice(0, 80)} no existe.`);
     }
     const definicion = cat[verbo];
+    // Segunda barrera de la entrega controlada (G1, Fable N4): por aquí no sale ninguna escritura.
+    if (definicion.tipo === "escritura" && this.sitio.config.escrituras === false) {
+      throw new ErrorVerbo("tranquiseo_no_disponible", "Esta web está en entrega controlada: no se escribe nada sin el visto bueno de su responsable.",
+        { capacidad: verbo, ...ENTREGA_CONTROLADA });
+    }
     const limpios = validar(definicion.esquema, argumentos ?? {}, ctxEsquema(this.sitio));
     const falta = capacidadQueFalta(this.sitio, definicion);
     if (falta) {

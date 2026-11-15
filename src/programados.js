@@ -53,6 +53,12 @@ export class Programados {
 export function publicarVencidos(sitio, programados) {
   const publicados = [];
   const avisos = [];
+  // Entrega controlada (M1, Fable N4): publicar un programado es escribir. Se queda con su fecha
+  // y sale en cuanto se quite la opción.
+  if (sitio.config.escrituras === false) {
+    if (programados.vencidos(sitio.ahora()).length > 0) avisos.push("programados_en_espera:entrega_controlada");
+    return { publicados, avisos };
+  }
   for (const id of programados.vencidos(sitio.ahora())) {
     const fecha = Date.parse(programados.fecha(id).replace(" ", "T") + "Z");
     if (Number.isFinite(fecha) && sitio.ahora() - fecha > MAX_RETRASO_PROGRAMADO_MS) {
