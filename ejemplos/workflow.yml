@@ -33,9 +33,9 @@ concurrency:
 
 jobs:
   conector:
-    # Al publicar el conector, esta línea irá fijada por SHA completo (no por etiqueta) y Dependabot
-    # propondrá las subidas (ejemplos/dependabot.yml). `@v1` es de momento un marcador.
-    uses: tranquiseo/conector-astro/.github/workflows/conector.yml@v1
+    # Fijada por SHA completo (no por etiqueta: una etiqueta se puede mover). Dependabot propone las
+    # subidas (ejemplos/dependabot.yml).
+    uses: tranquiseo/conector-astro/.github/workflows/conector.yml@2389a67f1e6866fee1f181ec11f286c582d7e7b7 # v1
     with:
       accion: ${{ inputs.accion || 'ciclo' }}
       rama: main
