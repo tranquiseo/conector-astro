@@ -1,0 +1,154 @@
+# Workflow reutilizable del conector de Tranquiseo (J9, decisión 25: jobs separados).
+#
+# La web del cliente lo llama desde su `.github/workflows/tranquiseo.yml` (ver ejemplos/workflow.yml)
+# y solo le pasa el secreto TRANQUISEO_CLAVE_SITIO. Tres jobs, cada uno en su propia máquina:
+#
+#   aplicar   clave + token, SIN código de la web: consulta, verifica, aplica las órdenes y deja un
+#             parche (artefacto) y su sha256 (output). Solo lecturas o sin órdenes: acaba aquí.
+#   compilar  SIN secretos y con permisos de solo lectura: aplica el parche, `npm ci` y build de la
+#             web. Lo único que cuenta de este job es si acaba bien o mal.
+#   publicar  clave + token, SIN código de la web: comprueba el parche contra el hash de `aplicar`
+#             (nunca contra nada de `compilar`), lo vuelve a pasar por la guardia, commit, push,
+#             despliegue, espera y resultado firmado. Si `compilar` falló, firma el fallo del lote.
+#
+# Reglas que no se tocan (y que comprueba tests/jobs.test.mjs):
+#  - `compilar` no referencia ningún `secrets.` ni pide permisos de escritura.
+#  - Ningún job usa `actions/cache` ni `setup-node` con `cache:`: ACTIONS_RUNTIME_TOKEN existe en
+#    `compilar` aunque tenga permisos mínimos, y podría envenenar una caché que leyeran los otros.
+#  - `publicar` no ejecuta nada de la web (ni `npm ci` del cliente, ni build, ni `npx`).
+#  - Solo runners de GitHub (máquinas nuevas en cada job). Con runners propios compartidos, la
+#    separación no vale nada.
+name: Tranquiseo (conector)
+
+on:
+  workflow_call:
+    inputs:
+      accion:
+        description: "ciclo o baja"
+        type: string
+        required: false
+        default: ciclo
+      rama:
+        description: Rama principal de la web
+        type: string
+        required: false
+        default: main
+      node-version:
+        description: Versión de Node con la que compila la web (job compilar)
+        type: string
+        required: false
+        default: "22"
+    secrets:
+      TRANQUISEO_CLAVE_SITIO:
+        required: true
+
+# Una ejecución del conector a la vez por repo, también si alguien llama a este workflow desde otro
+# workflow que no ponga su propia `concurrency` (J10, Fable 5). Sin cancelar: podría estar a mitad de un push.
+concurrency:
+  group: tranquiseo-conector-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  aplicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Sin `permissions`: hereda las del workflow que llama (contents: write; actions: write solo si
+    # el despliegue es un workflow propio).
+    outputs:
+      compilar: ${{ steps.conector.outputs.compilar }}
+      hash: ${{ steps.conector.outputs.hash }}
+      base: ${{ steps.conector.outputs.base }}
+      artefacto: ${{ steps.conector.outputs.artefacto }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0               # revisions.list/restore necesitan el historial
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          package-manager-cache: false   # setup-node v5+ activa la caché sola con `packageManager` (J10, Fable 5)
+          node-version: 22
+
+      # Al publicar, fijada por SHA completo (Dependabot propone las subidas).
+      - id: conector
+        uses: tranquiseo/conector-astro@v1
+        with:
+          fase: aplicar
+          clave: ${{ secrets.TRANQUISEO_CLAVE_SITIO }}
+          token: ${{ github.token }}
+          accion: ${{ inputs.accion }}
+          rama: ${{ inputs.rama }}
+
+      - if: steps.conector.outputs.compilar == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ steps.conector.outputs.artefacto }}
+          path: ${{ runner.temp }}/tranquiseo-parche/parche.json
+          if-no-files-found: error
+          retention-days: 1
+
+  compilar:
+    needs: aplicar
+    if: needs.aplicar.outputs.compilar == 'true'
+    runs-on: ubuntu-latest
+    # Más que los topes del conector (instalar 15 + compilar 15 min): el job no muere antes que ellos (J10, Fable 8).
+    timeout-minutes: 35
+    permissions:
+      contents: read                   # solo para el checkout
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.aplicar.outputs.base }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          package-manager-cache: false   # setup-node v5+ activa la caché sola con `packageManager` (J10, Fable 5)
+          node-version: ${{ inputs.node-version }}
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.aplicar.outputs.artefacto }}
+          path: ${{ runner.temp }}/tranquiseo-parche
+
+      # Sin clave ni token: si llegaran, el conector se niega a arrancar.
+      - uses: tranquiseo/conector-astro@v1
+        with:
+          fase: compilar
+          hash-parche: ${{ needs.aplicar.outputs.hash }}
+
+  publicar:
+    needs: [aplicar, compilar]
+    # También si `compilar` falla: hay que firmar el fallo del lote para que el core no espere.
+    if: ${{ !cancelled() && needs.aplicar.result == 'success' && needs.aplicar.outputs.compilar == 'true' }}
+    runs-on: ubuntu-latest
+    # Más que la espera de publicación máxima (`espera_publicacion` ≤ 1800 s) más el resto: no muere entre
+    # el push y la firma (J10, Fable 8).
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.aplicar.outputs.base }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          package-manager-cache: false   # setup-node v5+ activa la caché sola con `packageManager` (J10, Fable 5)
+          node-version: 22
+
+      # Por el nombre exacto que dio `aplicar`; el conector comprueba el sha256 contra su output.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ needs.aplicar.outputs.artefacto }}
+          path: ${{ runner.temp }}/tranquiseo-parche
+
+      - uses: tranquiseo/conector-astro@v1
+        with:
+          fase: publicar
+          clave: ${{ secrets.TRANQUISEO_CLAVE_SITIO }}
+          token: ${{ github.token }}
+          rama: ${{ inputs.rama }}
+          hash-parche: ${{ needs.aplicar.outputs.hash }}
+          resultado-build: ${{ needs.compilar.result }}

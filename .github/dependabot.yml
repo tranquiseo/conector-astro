@@ -1,0 +1,14 @@
+# Dependabot del repo público del conector: propone las subidas de las Actions de GitHub que usa el
+# workflow reutilizable (fijadas por SHA) y de las dependencias npm del conector.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    allow:
+      - dependency-type: production

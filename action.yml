@@ -1,0 +1,85 @@
+name: Tranquiseo · conector Astro
+description: >-
+  Recoge las órdenes firmadas de Tranquiseo, las aplica sobre el contenido de la web Astro,
+  compila, publica en la rama principal y devuelve el resultado firmado. Se usa desde el workflow
+  reutilizable `.github/workflows/conector.yml` (tres jobs), no suelta.
+author: Tranquiseo
+
+inputs:
+  fase:
+    description: >-
+      aplicar (clave, sin código de la web), compilar (sin secretos) o publicar (clave, sin código
+      de la web). La pone el workflow reutilizable.
+    required: false
+    default: aplicar
+  clave:
+    description: Clave privada del sitio, desde el secreto TRANQUISEO_CLAVE_SITIO. Nunca en la fase compilar.
+    required: false
+    default: ""
+  token:
+    description: Token para empujar a la rama principal y lanzar el despliegue (github.token). Nunca en la fase compilar.
+    required: false
+    default: ""
+  accion:
+    description: "ciclo (por defecto) o baja"
+    required: false
+    default: ciclo
+  rama:
+    description: Rama principal del repo, donde publica el conector.
+    required: false
+    default: main
+  url-base:
+    description: URL del servicio de Tranquiseo. Solo se cambia para pruebas.
+    required: false
+    default: https://tranquiseo.com/conector
+  hash-parche:
+    description: sha256 del parche, tal como lo publicó la fase aplicar (fases compilar y publicar).
+    required: false
+    default: ""
+  resultado-build:
+    description: Resultado del job compilar (needs.compilar.result), solo para la fase publicar.
+    required: false
+    default: ""
+
+outputs:
+  compilar:
+    description: "true si la fase aplicar ha dejado un parche que hay que compilar y publicar"
+    value: ${{ steps.conector.outputs.compilar }}
+  hash:
+    description: sha256 del parche (fase aplicar)
+    value: ${{ steps.conector.outputs.hash }}
+  base:
+    description: SHA del commit sobre el que se aplica el parche (fase aplicar)
+    value: ${{ steps.conector.outputs.base }}
+  artefacto:
+    description: Nombre del artefacto con el parche (fase aplicar)
+    value: ${{ steps.conector.outputs.artefacto }}
+
+runs:
+  using: composite
+  steps:
+    # Dependencias del propio conector, con el lockfile y SIN scripts de instalación: ninguna
+    # dependencia ejecuta nada al instalarse. Este paso no ve ningún secreto.
+    # Desde la carpeta del conector, no desde el checkout de la web: un `.npmrc` del repo del cliente
+    # (registro, `ignore-scripts=false`) no tiene que poder influir en esta instalación (J10, Fable 2).
+    - name: Instalar el conector
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix "$GITHUB_ACTION_PATH"
+
+    # Los secretos solo entran en este paso, por variables de entorno (nunca en la línea de
+    # órdenes). `src/action.js` los saca de `process.env` antes de hacer nada, y en la fase
+    # compilar se niega a arrancar si llega alguno.
+    - name: Ejecutar el conector
+      id: conector
+      shell: bash
+      run: node "$GITHUB_ACTION_PATH/src/action.js"
+      env:
+        TRANQUISEO_FASE: ${{ inputs.fase }}
+        TRANQUISEO_CLAVE_SITIO: ${{ inputs.clave }}
+        TRANQUISEO_GITHUB_TOKEN: ${{ inputs.token }}
+        TRANQUISEO_ACCION: ${{ inputs.accion }}
+        TRANQUISEO_RAMA: ${{ inputs.rama }}
+        TRANQUISEO_URL_BASE: ${{ inputs.url-base }}
+        TRANQUISEO_HASH_PARCHE: ${{ inputs.hash-parche }}
+        TRANQUISEO_RESULTADO_BUILD: ${{ inputs.resultado-build }}

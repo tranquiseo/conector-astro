@@ -1,0 +1,9 @@
+# Se copia a `.github/dependabot.yml` en el repo de la web. Propone como pull request las subidas
+# de versión de las Actions del workflow de Tranquiseo (y de checkout/setup-node), para que el
+# workflow pueda ir fijado por SHA sin quedarse atrás en parches de seguridad (THREAT-MODEL A5).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

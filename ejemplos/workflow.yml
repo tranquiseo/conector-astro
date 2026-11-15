@@ -1,0 +1,45 @@
+# Workflow del conector de Tranquiseo. Se copia tal cual a `.github/workflows/tranquiseo.yml`
+# en el repo de la web (el nombre del fichero importa: la baja lo lanza por ese nombre).
+#
+# Todo el trabajo lo hace el workflow reutilizable del conector, en tres jobs separados: la clave
+# del sitio nunca está en la misma máquina que el build de la web (sus dependencias npm).
+name: Tranquiseo
+
+on:
+  schedule:
+    # Cada 30 minutos. GitHub cobra cada job redondeado a 1 minuto: una ejecución sin órdenes o
+    # solo de lecturas es 1 job (≈1.440 min/mes, dentro de los 2.000 del plan gratuito de un repo
+    # privado); una con cambios que compilar son 3 jobs. Si cambias el intervalo, pon el mismo
+    # valor (en segundos) en `intervalo` de tranquiseo.config.json.
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      accion:
+        description: "ciclo o baja"
+        required: false
+        default: ciclo
+        type: choice
+        options: [ciclo, baja]
+  # NUNCA `push`: un commit del conector volvería a lanzar el conector.
+
+permissions:
+  contents: write   # empujar el contenido a la rama principal (el job que compila baja a solo lectura)
+  # actions: write  # SOLO si el despliegue es un workflow propio (`despliegue.tipo: workflow`): descomenta esta línea
+
+# Una ejecución a la vez, y sin cancelar la que está en marcha (podría estar a mitad de un push).
+concurrency:
+  group: tranquiseo
+  cancel-in-progress: false
+
+jobs:
+  conector:
+    # Al publicar el conector, esta línea irá fijada por SHA completo (no por etiqueta) y Dependabot
+    # propondrá las subidas (ejemplos/dependabot.yml). `@v1` es de momento un marcador.
+    uses: tranquiseo/conector-astro/.github/workflows/conector.yml@v1
+    with:
+      accion: ${{ inputs.accion || 'ciclo' }}
+      rama: main
+      node-version: "22"   # la que use tu web para compilar
+    # Solo este secreto, nombrado: nunca `secrets: inherit`.
+    secrets:
+      TRANQUISEO_CLAVE_SITIO: ${{ secrets.TRANQUISEO_CLAVE_SITIO }}
