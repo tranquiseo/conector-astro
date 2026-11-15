@@ -4,7 +4,7 @@
 
 import { ErrorVerbo } from "./errores.js";
 import { ERRORES_TRANSITORIOS } from "./estado/registros.js";
-import { capacidades } from "./capacidades.js";
+import { capacidades, ENTREGA_CONTROLADA } from "./capacidades.js";
 import { VERSION_CONECTOR } from "./sitio.js";
 import { normalizarUrl } from "./cripto/sobre.js";
 import { mismoHost, hostDe } from "./verbos/redirecciones.js";
@@ -118,6 +118,15 @@ export class Despacho {
       return { salida: fallo(id, verbo, "tranquiseo_orden_invalida", "Los argumentos tienen que ir con nombre."), escritura: false, ejecutada: false };
     }
 
+    // Entrega controlada: ni se escribe ni se anota (al quitar la opción, la reentrega se aplica).
+    if (escritura && this.sitio.config.escrituras === false) {
+      return {
+        salida: fallo(id, verbo, "tranquiseo_no_disponible", "Esta web está en entrega controlada: no se escribe nada sin el visto bueno de su responsable.",
+          { capacidad: verbo, ...ENTREGA_CONTROLADA }),
+        escritura: false, ejecutada: false,
+      };
+    }
+
     const destructiva = this.esDestructiva(verbo, args);
     const tope = this.sitio.config.topeDestructivasHora;
     if (destructiva && this.motor.registro.destructivasUltimaHora(this.ahora()) >= tope) {
@@ -153,7 +162,7 @@ export class Despacho {
 
   /** Lo que el core sabe de este sitio en cada contacto (`Despacho::estado`). */
   estado() {
-    const cap = capacidades(this.sitio, this.motor.verbos());
+    const cap = capacidades(this.sitio, this.motor.verbos(), this.motor.escrituras());
     return {
       plugin: VERSION_CONECTOR,
       plataforma: "astro",

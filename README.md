@@ -87,6 +87,9 @@ Tranquiseo → Run workflow**.
   publicar. Tranquiseo lo verá y te avisará.
 - **Cada cambio es un commit** de `tranquiseo[bot]`. Para deshacer uno: `git revert <commit>`.
 - **Nada se publica sin compilar.** Si la web no compila con un cambio, no se sube nada y se reintenta.
+- **Entrega controlada.** Con `"escrituras": false` en `tranquiseo.config.json` el conector solo lee:
+  Tranquiseo analiza tu web y te propone cambios en el panel, pero no escribe nada en el repositorio.
+  Cuando quieras que los cambios se apliquen, quita esa línea.
 
 ## Seguridad de tu repositorio
 

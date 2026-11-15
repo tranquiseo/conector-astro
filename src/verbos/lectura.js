@@ -192,7 +192,7 @@ function siteInfo(sitio) {
 
 function siteCapabilities(sitio, _args, motor) {
   // `refrescar` se acepta y no cambia nada: no hay caché de capacidades que invalidar.
-  return capacidades(sitio, motor.verbos());
+  return capacidades(sitio, motor.verbos(), motor.escrituras());
 }
 
 function porModificado(sitio) {

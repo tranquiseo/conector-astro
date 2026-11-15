@@ -149,7 +149,7 @@ function coleccion(c, clave, tipo) {
 const CLAVES = [
   "version", "sitio_id", "home_url", "raiz", "zona", "build", "instalar", "dist", "intervalo", "despliegue",
   "espera_publicacion", "selector_contenido", "colecciones", "paginas_fijas", "media", "redirecciones",
-  "redirecciones_ajenas", "redirecciones_leidas", "rutas_permitidas", "sitemap", "tope_destructivas_hora",
+  "redirecciones_ajenas", "redirecciones_leidas", "rutas_permitidas", "sitemap", "tope_destructivas_hora", "escrituras",
 ];
 
 // Rutas que la guardia no deja tocar nunca, diga lo que diga la config (spec §9 paso 6).
@@ -223,6 +223,8 @@ export function validarConfig(c) {
     rutasPermitidas: [...rutasPermitidas],
     sitemap: c.sitemap === undefined ? true : booleano(c.sitemap, "sitemap"),
     topeDestructivasHora: c.tope_destructivas_hora === undefined ? 20 : entero(c.tope_destructivas_hora, "tope_destructivas_hora", 1, 200),
+    // Entrega controlada: con `false` el conector solo lee; toda escritura sale `tranquiseo_no_disponible`.
+    escrituras: c.escrituras === undefined ? true : booleano(c.escrituras, "escrituras"),
   });
 }
 

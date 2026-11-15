@@ -1,6 +1,6 @@
 {
   "name": "@tranquiseo/conector-astro",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Conector de Tranquiseo para webs Astro: el equivalente al plugin de WordPress, ejecutado como GitHub Action en el repo del cliente.",

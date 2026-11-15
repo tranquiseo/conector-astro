@@ -12,7 +12,7 @@ import { Ids } from "./estado/ids.js";
 import { leerMd } from "./contenido/frontmatter.js";
 import { fechaDeFrontmatter } from "./util/fechas.js";
 
-export const VERSION_CONECTOR = "astro-0.1.0";
+export const VERSION_CONECTOR = "astro-0.2.0";
 export const ESTADOS_NO_PUBLICOS = Object.freeze(["draft", "pending", "future", "private"]);
 
 const EXT_IMAGEN = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif", avif: "image/avif", svg: "image/svg+xml" };

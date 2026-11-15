@@ -57,6 +57,11 @@ export class Motor {
     return [...Object.keys(catalogo()), ...Object.keys(NO_DISPONIBLES)].filter((v, i, a) => a.indexOf(v) === i).sort();
   }
 
+  /** Verbos que escriben (los que bloquea la entrega controlada). */
+  escrituras() {
+    return Object.entries(catalogo()).filter(([, d]) => d.tipo === "escritura").map(([v]) => v).sort();
+  }
+
   definicion(verbo) {
     return catalogo()[verbo] ?? null;
   }

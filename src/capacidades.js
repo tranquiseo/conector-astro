@@ -16,6 +16,11 @@ export const REMEDIOS_REDIRECCIONES = Object.freeze({
   sitio_no_lee_nuestras_redirecciones: "Hacer que la web lea .tranquiseo/redirecciones.json al compilar y marcar «redirecciones_leidas»: true en tranquiseo.config.json.",
 });
 
+export const ENTREGA_CONTROLADA = Object.freeze({
+  motivo: "entrega_controlada",
+  remedio: "Esta web está en entrega controlada: no se escribe nada sin el visto bueno de su responsable. Para permitir los cambios, quitar «escrituras»: false de tranquiseo.config.json.",
+});
+
 export function versionAstro(sitio) {
   for (const ruta of [join(sitio.raizAstro, "node_modules", "astro", "package.json"), join(sitio.raizRepo, "node_modules", "astro", "package.json")]) {
     if (!existsSync(ruta)) continue;
@@ -39,8 +44,13 @@ export function redirecciones(sitio) {
  * @param {import('./sitio.js').Sitio} sitio
  * @param {string[]} verbos verbos del catálogo
  */
-export function capacidades(sitio, verbos) {
+export function capacidades(sitio, verbos, escrituras = []) {
   const c = sitio.config;
+  const bloqueados = c.escrituras === false ? escrituras : [];
+  const noDisponibles = {
+    ...structuredClone(NO_DISPONIBLES),
+    ...Object.fromEntries(bloqueados.map((v) => [v, { ...ENTREGA_CONTROLADA }])),
+  };
   const mapeado = (k) => Object.values(c.colecciones).some((col) => col.campos[k] !== null);
   return {
     plataforma: "astro",
@@ -60,8 +70,9 @@ export function capacidades(sitio, verbos) {
     borradores: Object.fromEntries(Object.entries(c.colecciones).map(([t, col]) => [t, col.borradores ? col.borradores.modo : null])),
     crear: Object.fromEntries(Object.entries(c.colecciones).map(([t, col]) => [t, col.crear])),
     programados: { precision_s: c.intervalo },
-    verbos: verbos.filter((v) => !Object.hasOwn(NO_DISPONIBLES, v)),
-    no_disponibles: structuredClone(NO_DISPONIBLES),
+    verbos: verbos.filter((v) => !Object.hasOwn(noDisponibles, v)),
+    no_disponibles: noDisponibles,
+    entrega_controlada: c.escrituras === false,
     selector_contenido: c.selectorContenido,
     intervalo: c.intervalo,
     permalinks: Object.fromEntries(Object.entries(c.colecciones).map(([t, col]) => [t, col.url])),
