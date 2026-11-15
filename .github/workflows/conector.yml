@@ -72,7 +72,7 @@ jobs:
 
       # Fijada por SHA completo, el mismo en los tres jobs (Dependabot propone las subidas).
       - id: conector
-        uses: tranquiseo/conector-astro@f6f5ac023fc3dff0ec5a393fecce7bb34b3252e3 # v1.1.0
+        uses: tranquiseo/conector-astro@f8684da12c75204da7f7c3a277f03743abcb3e52 # conector 0.2.1
         with:
           fase: aplicar
           clave: ${{ secrets.TRANQUISEO_CLAVE_SITIO }}
@@ -113,7 +113,7 @@ jobs:
           path: ${{ runner.temp }}/tranquiseo-parche
 
       # Sin clave ni token: si llegaran, el conector se niega a arrancar.
-      - uses: tranquiseo/conector-astro@f6f5ac023fc3dff0ec5a393fecce7bb34b3252e3 # v1.1.0
+      - uses: tranquiseo/conector-astro@f8684da12c75204da7f7c3a277f03743abcb3e52 # conector 0.2.1
         with:
           fase: compilar
           hash-parche: ${{ needs.aplicar.outputs.hash }}
@@ -144,7 +144,7 @@ jobs:
           name: ${{ needs.aplicar.outputs.artefacto }}
           path: ${{ runner.temp }}/tranquiseo-parche
 
-      - uses: tranquiseo/conector-astro@f6f5ac023fc3dff0ec5a393fecce7bb34b3252e3 # v1.1.0
+      - uses: tranquiseo/conector-astro@f8684da12c75204da7f7c3a277f03743abcb3e52 # conector 0.2.1
         with:
           fase: publicar
           clave: ${{ secrets.TRANQUISEO_CLAVE_SITIO }}
