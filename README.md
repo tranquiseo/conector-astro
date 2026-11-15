@@ -45,7 +45,7 @@ Nunca toca el código de la web, `.github/`, `package.json`, `astro.config.*` ni
 Dentro de la carpeta del repo:
 
 ```bash
-npx github:tranquiseo/conector-astro#49ba10e80b5665888566ddc421f264d7dd370b5c alta ABC123-DEF456-GHI789-JKL012
+npx github:tranquiseo/conector-astro#5deff2e59ad25fdf2d4cc0b2fbd1d8606a56b4bd alta ABC123-DEF456-GHI789-JKL012
 ```
 
 Esto:
@@ -119,7 +119,7 @@ comprometida, no debe poder leer la clave de tu web ni el permiso de escritura. 
 ## Darse de baja
 
 ```bash
-npx github:tranquiseo/conector-astro#49ba10e80b5665888566ddc421f264d7dd370b5c baja
+npx github:tranquiseo/conector-astro#5deff2e59ad25fdf2d4cc0b2fbd1d8606a56b4bd baja
 ```
 
 Lanza la Action una última vez para avisar a Tranquiseo (firmado con la clave de la web), espera a
