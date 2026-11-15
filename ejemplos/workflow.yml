@@ -35,7 +35,7 @@ jobs:
   conector:
     # Fijada por SHA completo (no por etiqueta: una etiqueta se puede mover). Dependabot propone las
     # subidas (ejemplos/dependabot.yml).
-    uses: tranquiseo/conector-astro/.github/workflows/conector.yml@2389a67f1e6866fee1f181ec11f286c582d7e7b7 # v1
+    uses: tranquiseo/conector-astro/.github/workflows/conector.yml@49ba10e80b5665888566ddc421f264d7dd370b5c # v1.1.0
     with:
       accion: ${{ inputs.accion || 'ciclo' }}
       rama: main
